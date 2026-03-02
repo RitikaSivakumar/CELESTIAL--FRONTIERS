@@ -1,17 +1,15 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import SidebarShell from "@/components/SidebarShell";
+import DashboardRouter from "@/components/DashboardRouter";
+
+export default function DashboardPage() {
   return (
-    <main style={{ padding: 40 }}>
-      <h1>Mental Wellness App</h1>
-
-      <p>Welcome! This is your personalized wellness platform.</p>
-
-      <Link href="/register">
-        <button style={{ marginTop: 20 }}>
-          Get Started
-        </button>
-      </Link>
-    </main>
+    <SidebarShell>
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <DashboardRouter />
+      </div>
+    </SidebarShell>
   );
 }

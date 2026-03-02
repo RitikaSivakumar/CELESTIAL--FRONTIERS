@@ -1,148 +1,181 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [name, setName] = useState("");
-  const [userId, setUserId] = useState("");
-  const [email, setEmail] = useState("");
-  const [dob, setDob] = useState("");
-  const [gender, setGender] = useState("Female");
-  const [category, setCategory] = useState("Student");
-  const [maternalSupport, setMaternalSupport] = useState("No");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    dob: "",
+    age: "",
+    gender: "",
+    category: "",
+    maternal_support: "No",
+  });
 
-  const age = useMemo(() => {
-    if (!dob) return "";
+  const [error, setError] = useState("");
+
+  function calculateAge(dob: string) {
     const birth = new Date(dob);
-    const today = new Date();
-    let a = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
-    return a;
-  }, [dob]);
+    const diff = Date.now() - birth.getTime();
+    const ageDate = new Date(diff);
+    return Math.abs(ageDate.getUTCFullYear() - 1970).toString();
+  }
 
-  function handleRegister() {
-    if (!name || !email || !dob) {
-      alert("Please fill all required fields");
-      return;
+  async function handleRegister(e: any) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      // 1️⃣ create auth user
+      const { data, error: authError } =
+        await supabase.auth.signUp({
+          email: form.email,
+          password: form.password,
+        });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      const user = data.user;
+
+      if (!user) {
+        setError("User not created");
+        return;
+      }
+
+      // 2️⃣ wait briefly to ensure auth session exists
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 3️⃣ insert profile
+      const { error: profileError } =
+        await supabase.from("profiles").insert({
+          id: user.id,
+          name: form.name,
+          email: form.email,
+          dob: form.dob,
+          age: Number(form.age),
+          gender: form.gender,
+          category: form.category,
+          maternal_support: form.maternal_support,
+        });
+
+      if (profileError) {
+        setError(profileError.message);
+        return;
+      }
+
+      alert("Registration successful");
+
+      router.push("/dashboard");
+
+    } catch (err: any) {
+      setError(err.message);
     }
-
-    const user = {
-      name,
-      userId,
-      email,
-      dob,
-      age,
-      gender,
-      category,
-      maternalSupport,
-    };
-
-    localStorage.setItem("user", JSON.stringify(user));
-
-    router.push("/dashboard");
   }
 
   return (
-    <main style={{ padding: 30 }}>
-      <h1>Create your account</h1>
+    <div style={{ padding: 30 }}>
+      <h1>Register</h1>
 
-      <br />
+      <form onSubmit={handleRegister}>
 
-      <input
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+        <input
+          placeholder="Full Name"
+          value={form.name}
+          onChange={(e) =>
+            setForm({ ...form, name: e.target.value })
+          }
+        />
 
-      <br />
-      <br />
+        <br /><br />
 
-      <input
-        placeholder="User ID"
-        value={userId}
-        onChange={(e) => setUserId(e.target.value)}
-      />
+        <input
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) =>
+            setForm({ ...form, email: e.target.value })
+          }
+        />
 
-      <br />
-      <br />
+        <br /><br />
 
-      <input
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={(e) =>
+            setForm({ ...form, password: e.target.value })
+          }
+        />
 
-      <br />
-      <br />
+        <br /><br />
 
-      <label>Date of Birth</label>
-      <br />
+        <input
+          type="date"
+          value={form.dob}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              dob: e.target.value,
+              age: calculateAge(e.target.value),
+            })
+          }
+        />
 
-      <input
-        type="date"
-        value={dob}
-        onChange={(e) => setDob(e.target.value)}
-      />
+        <br /><br />
 
-      <br />
-      <br />
+        <input value={form.age} disabled />
 
-      <p>Age: {age}</p>
+        <br /><br />
 
-      <label>Gender</label>
-      <br />
+        <select
+          value={form.gender}
+          onChange={(e) =>
+            setForm({ ...form, gender: e.target.value })
+          }
+        >
+          <option value="">Gender</option>
+          <option>Male</option>
+          <option>Female</option>
+        </select>
 
-      <select
-        value={gender}
-        onChange={(e) => setGender(e.target.value)}
-      >
-        <option>Female</option>
-        <option>Male</option>
-        <option>Other</option>
-      </select>
+        <br /><br />
 
-      <br />
-      <br />
+        <select
+          value={form.category}
+          onChange={(e) =>
+            setForm({ ...form, category: e.target.value })
+          }
+        >
+          <option value="">Category</option>
+          <option>Student</option>
+          <option>Worker</option>
+          <option>Old Age</option>
+          <option>Homemaker</option>
+        </select>
 
-      <label>Category</label>
-      <br />
+        <br /><br />
 
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-      >
-        <option>Student</option>
-        <option>Worker</option>
-        <option>Old Age</option>
-        <option>Homemaker</option>
-      </select>
+        <button type="submit">
+          Register
+        </button>
 
-      <br />
-      <br />
+      </form>
 
-      <label>Maternal Support</label>
-      <br />
+      {error && (
+        <p style={{ color: "red" }}>
+          {error}
+        </p>
+      )}
 
-      <select
-        value={maternalSupport}
-        onChange={(e) =>
-          setMaternalSupport(e.target.value)
-        }
-      >
-        <option>No</option>
-        <option>Yes</option>
-      </select>
-
-      <br />
-      <br />
-
-      <button onClick={handleRegister}>
-        Register
-      </button>
-    </main>
+    </div>
   );
 }

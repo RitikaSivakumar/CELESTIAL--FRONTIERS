@@ -7,94 +7,77 @@ import supabase from "@/lib/supabaseClient";
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function sendOtp() {
+  async function onLogin(e: React.FormEvent) {
+    e.preventDefault();
     setMsg(null);
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) return setMsg("Enter email");
-
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: cleanEmail,
-      options: { shouldCreateUser: false },
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
     });
+
     setLoading(false);
 
-    if (error) return setMsg(error.message);
-    setSent(true);
-    setMsg("OTP sent. Check Inbox + Spam.");
-  }
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
 
-  async function verifyOtp() {
-    setMsg(null);
-    if (!otp.trim()) return setMsg("Enter OTP");
-
-    setLoading(true);
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: otp.trim(),
-      type: "email",
-    });
-    setLoading(false);
-
-    if (error) return setMsg(error.message);
-    if (data.session) router.push("/dashboard");
+    router.replace("/dashboard");
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#070A12] via-[#0B1430] to-[#070A12]">
-      <div className="w-full max-w-md rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl p-6 shadow-xl">
+    <div className="min-h-screen bg-[#000010] text-white flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6">
         <h1 className="text-2xl font-semibold">Login</h1>
-        <p className="text-sm text-white/60 mt-1">Enter email, get OTP, login.</p>
+        <p className="text-white/70 mt-1">Login with email and password.</p>
 
-        <div className="mt-6 space-y-3">
-          <input
-            className="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          {sent && (
+        <form onSubmit={onLogin} className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Email</label>
             <input
-              className="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none"
-              placeholder="OTP (6–8 digits)"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 outline-none"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@gmail.com"
+              type="email"
+              required
             />
-          )}
+          </div>
 
-          {!sent ? (
-            <button
-              onClick={sendOtp}
-              disabled={loading}
-              className="w-full rounded-xl bg-blue-500/80 hover:bg-blue-500 px-4 py-3 font-medium"
-            >
-              {loading ? "Sending..." : "Send OTP"}
-            </button>
-          ) : (
-            <button
-              onClick={verifyOtp}
-              disabled={loading}
-              className="w-full rounded-xl bg-green-500/80 hover:bg-green-500 px-4 py-3 font-medium"
-            >
-              {loading ? "Verifying..." : "Verify & Login"}
-            </button>
-          )}
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Password</label>
+            <input
+              className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 outline-none"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              type="password"
+              required
+            />
+          </div>
 
-          {msg && <div className="text-sm text-white/80">{msg}</div>}
+          <button
+            disabled={loading}
+            className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 font-medium disabled:opacity-60"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
 
-          <div className="text-sm text-white/60">
+          {msg && <p className="text-sm text-red-300">{msg}</p>}
+
+          <p className="text-sm text-white/70">
             New here?{" "}
-            <a className="text-blue-300 hover:underline" href="/register">
+            <a className="text-blue-300 underline" href="/register">
               Register
             </a>
-          </div>
-        </div>
+          </p>
+        </form>
       </div>
     </div>
   );
